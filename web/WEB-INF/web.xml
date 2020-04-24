@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+  version="4.0"
+  metadata-complete="true">
+
+    <display-name>ASU CICI Trajectory</display-name>
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+    <servlet>
+        <servlet-name>GeoLife</servlet-name>
+        <servlet-class>edu.asu.cici.trajectory.server.GeoLife</servlet-class>
+        <init-param>
+            <param-name>queryByObject</param-name>
+            <param-value>SELECT longitude as x, latitude as y, date_time as d, trans_type as t FROM geolife WHERE target = '%s' ORDER BY id ASC</param-value>
+        </init-param>
+        <init-param>
+            <param-name>queryByObjectAndTime</param-name>
+            <param-value>SELECT longitude as x, latitude as y, date_time as d, trans_type as t FROM geolife WHERE target = '%s' AND (date_time BETWEEN '%s' AND '%s') ORDER BY id ASC</param-value>
+        </init-param>
+        <init-param>
+            <param-name>queryByTime</param-name>
+            <param-value>SELECT target p, longitude as x, latitude as y, date_time as d, trans_type as t FROM geolife WHERE (date_time BETWEEN '%s' AND '%s') ORDER BY id ASC</param-value>
+        </init-param>
+        <init-param>
+            <param-name>queryByBox</param-name>
+            <param-value>SELECT target p, longitude as x, latitude as y, date_time as d, trans_type as t FROM geolife WHERE  ORDER BY id ASC</param-value>
+        </init-param>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>GeoLife</servlet-name>
+        <url-pattern>/geolife/*</url-pattern>
+    </servlet-mapping>
+
+</web-app>

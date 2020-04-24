@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="GB2312"?>
+<project name="quad-server" default="1_build">
+	
+	<target name="init">
+		<echo message="设置参数" />
+		<property name="project.name" value="trajectories" />
+		<property name="jar.name"	value="asu.trajectories" />
+		<property name="version"	value="1.0.0" />
+		<property name="src.dir"	value="./src" />
+		<property name="web.dir"	value="./web" />
+		<property name="lib.dir"	value="${web.dir}/WEB-INF/lib" />
+		<property name="build.dir"	value="${web.dir}/WEB-INF/classes" />
+		<property name="dist.dir"	value="./dist" />
+
+		<property name="jdk11" location="/usr/local/jdk" />
+		<property name="javac" location="${jdk11}/bin/javac" />
+		<property name="target" value="11" />
+		<property name="source" value="11" />
+	</target>
+	
+	<path id="classpath">
+		<fileset dir="${build.dir}"><include name="*.class" /></fileset>
+		<fileset dir="${lib.dir}"><include name="**/*.jar" /></fileset>
+	</path>	
+	
+	<target name="cleanup">
+		<echo message="清除旧文件" />
+		<delete	dir="${build.dir}" />
+		<mkdir	dir="${build.dir}" />
+		<delete	dir="${dist.dir}" />
+		<mkdir	dir="${dist.dir}" />
+	</target>
+	
+	<target name="compile">
+		<echo message="编译代码" />
+		<javac srcdir="${src.dir}" destdir="${build.dir}"
+			executable="${javac}" target="${target}" source="${source}" fork="true" debug="true" encoding="UTF-8" includeantruntime="false">
+			<classpath  refid="classpath" />
+			<include name="**/*.java" />	
+		</javac>
+	</target>
+
+	<target name="pack" >
+		<echo message="程序打包" />
+		<!--
+		<antcall target="pack_jar" />
+		-->
+	</target>
+	
+	<target name="pack_jar" >
+		<echo message="打包jar文件" />
+		<jar destfile="${lib.dir}/${jar.name}.jar">
+			<zipfileset dir="${build.dir}/edu/asu/" prefix="edu/asu" includes="**/*.class"/>
+		</jar>
+	</target>
+
+	<target name="1_build" depends="init">
+		<antcall target="cleanup" />
+		<antcall target="compile" />
+		<antcall target="pack" />
+	</target>
+
+</project>

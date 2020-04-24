@@ -1,0 +1,6 @@
+http://localhost:8080/trajectory-web/geolife/queryByUser?userId=087
+http://localhost:8080/trajectory-web/geolife/queryByUserAndTime?userId=087&start=2007-08-15 10:53:00&end=2007-08-15 23:59:59
+http://localhost:8080/trajectory-web/geolife/queryByUserAndTime?userId=087&start=2007-08-16 00:00:00&end=2007-08-16 23:59:59
+http://localhost:8080/trajectory-web/geolife/queryByTime?start=2007-08-16 00:00:00&end=2007-08-16 23:59:59
+
+http://linode:18864/trajectory/geolife/queryByUser?userId=087
