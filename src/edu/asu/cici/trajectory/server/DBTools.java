@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DBTools {
     private static DataSource dataSource = null;
@@ -17,7 +19,7 @@ public class DBTools {
     static {
         try {
             InitialContext ctx = new InitialContext();
-            dataSource = (DataSource)ctx.lookup("java:/comp/env/jdbc/trajectory");
+            dataSource = (DataSource)ctx.lookup("java:/comp/env/jdbc/digital-contact");
         } catch (NamingException e) {
             e.printStackTrace();
         }
@@ -64,6 +66,101 @@ public class DBTools {
                     }
                 }
                 writer.write("}");
+            }
+            writer.write("]}");
+        }
+    }
+
+    public static void trajectory(HttpServletRequest request, HttpServletResponse response, ResultSet resultSet)
+            throws IOException, SQLException {
+        try (Writer writer = CompressWriter.getWriter(request, response)) {
+            List<Long> timestamps = new ArrayList<Long>();
+
+            writer.write("[{\"path\":[");
+            long count = 0, offset = Long.MAX_VALUE, timestamp = 0;
+            while (resultSet.next()) {
+                timestamp = resultSet.getTimestamp("date_time").getTime();
+                if (timestamp < offset) {
+                    offset = timestamp;
+                }
+                timestamps.add(timestamp);
+
+                if (count++ == 0) {
+                    writer.write(String.format("[%f,%f]", resultSet.getDouble("longitude"), resultSet.getDouble("latitude")));
+                } else {
+                    writer.write(String.format(",[%f,%f]", resultSet.getDouble("longitude"), resultSet.getDouble("latitude")));
+                }
+
+
+            }
+            writer.write("],");
+
+            writer.write("\"timestamp\":[");
+            for(int i=0; i<timestamps.size(); i++) {
+                if (i == 0) {
+                    writer.write(String.valueOf((timestamps.get(i) - offset) / 1000));
+                } else {
+                    writer.write(String.format(",%d", (timestamps.get(i) - offset) / 1000));
+                }
+            }
+            writer.write("], \"marked\": 0");
+
+            writer.write("}]");
+        }
+    }
+
+    public static void trajectoryJson(HttpServletRequest request, HttpServletResponse response, ResultSet resultSet)
+            throws IOException, SQLException {
+        try (Writer writer = CompressWriter.getWriter(request, response)) {
+
+            writer.write("{\"type\": \"FeatureCollection\", \"features\": [{\"type\": \"Feature\",\"properties\": {},\"geometry\": {\"type\": \"LineString\",\"coordinates\": [");
+            long count = 0, timestamp = 0;
+            while (resultSet.next()) {
+                if (count++ == 0) {
+                    writer.write(String.format("[%f,%f]", resultSet.getDouble("longitude"), resultSet.getDouble("latitude")));
+                } else {
+                    writer.write(String.format(",[%f,%f]", resultSet.getDouble("longitude"), resultSet.getDouble("latitude")));
+                }
+            }
+            writer.write("]}}]}");
+        }
+    }
+
+    public static void contact(HttpServletRequest request, HttpServletResponse response, ResultSet resultSet)
+            throws IOException, SQLException {
+        try (Writer writer = CompressWriter.getWriter(request, response)) {
+            writer.write("[");
+            long count = 0, offset = Long.MAX_VALUE, timestamp = 0;
+            while (resultSet.next()) {
+                if (count++ > 0) {
+                    writer.write(",");
+                }
+                writer.write(String.format("{\"p\":[%f,%f],\"id\":%d,\"t\":%d}",
+                        resultSet.getDouble("longitude"),
+                        resultSet.getDouble("latitude"),
+                        resultSet.getInt("target"),
+                        resultSet.getTimestamp("date_time").getTime()));
+            }
+            writer.write("]");
+        }
+    }
+
+
+    public static void contactJson(HttpServletRequest request, HttpServletResponse response, ResultSet resultSet)
+            throws IOException, SQLException {
+        try (Writer writer = CompressWriter.getWriter(request, response)) {
+            writer.write("{\"type\": \"FeatureCollection\", \"features\": [");
+            long count = 0, offset = Long.MAX_VALUE, timestamp = 0;
+            while (resultSet.next()) {
+                if (count++ > 0) {
+                    writer.write(",");
+                }
+                writer.write(String.format(
+                        "{\"type\":\"Feature\", \"properties\":{\"id\": \"%s\", \"time\":\"%s\"}, \"geometry\":{\"type\":\"Point\", \"coordinates\":[%f,%f]}}",
+                        resultSet.getInt("target"),
+                        simpleDateFormat.format(resultSet.getTimestamp("date_time")),
+                        resultSet.getDouble("longitude"),
+                        resultSet.getDouble("latitude")));
             }
             writer.write("]}");
         }

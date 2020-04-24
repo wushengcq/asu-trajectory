@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Context path="/digitalcontact" docBase="/home/ws/Workspace/asu-digital-contact/web" reloadable="true" >
+    <Resource
+        name="jdbc/digital-contact"
+        auth="Container"
+        type="javax.sql.DataSource"
+        driverClassName="org.postgresql.Driver"
+        url="jdbc:postgresql://localhost:5432/postgres"
+        username="postgres"
+        password="qwer1234"
+        maxActive="100"
+        maxIdle="20"
+        minIdle="5"
+        maxWait="5000"
+    />
+</Context>
+
+

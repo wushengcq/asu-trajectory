@@ -1,6 +1,15 @@
-http://localhost:8080/trajectory-web/geolife/queryByUser?userId=087
-http://localhost:8080/trajectory-web/geolife/queryByUserAndTime?userId=087&start=2007-08-15 10:53:00&end=2007-08-15 23:59:59
-http://localhost:8080/trajectory-web/geolife/queryByUserAndTime?userId=087&start=2007-08-16 00:00:00&end=2007-08-16 23:59:59
-http://localhost:8080/trajectory-web/geolife/queryByTime?start=2007-08-16 00:00:00&end=2007-08-16 23:59:59
+http://localhost:8080/digitalcontact/geolife/trajectory?objectId=087&start=2007-08-15 10:53:00&end=2007-08-15 23:59:59
+http://localhost:8080/digitalcontact/geolife/contact?objectId=087&start=2007-08-15 10:53:00&end=2007-08-15 23:59:59
 
-http://linode:18864/trajectory/geolife/queryByUser?userId=087
+http://localhost:8080/digitalcontact/geolife/trajectory?objectId=153&start=2008-08-15%2006:00:00&end=2008-08-15%2023:59:59
+http://localhost:8080/digitalcontact/geolife/buffer?objectId=153&start=2008-08-15%2006:00:00&end=2008-08-15%2023:59:59
+http://localhost:8080/digitalcontact/geolife/contact?objectId=153&start=2008-08-15%2006:00:00&end=2008-08-15%2023:59:59
+
+
+
+
+http://linode:18864/trajectory/geolife/queryByObject?userId=087
+
+
+SELECT ST_AsGeoJSON(ST_Makeline(geom ORDER BY date_time ASC)) FROM geolife WHERE target = '153' AND (date_time BETWEEN '2008-08-15 06:00:00' AND '2008-08-15 23:59:59');
+SELECT ST_AsGeoJSON(ST_Makeline(geom)) FROM geolife g WHERE target != '153' AND (g.date_time BETWEEN '2008-08-15 06:00:00' AND '2008-08-15 23:59:59')AND ST_Contains((SELECT ST_Buffer(ST_MakeLine(geom ORDER BY date_time ASC), 0.0001) FROM geolife WHERE target = '153' AND (date_time BETWEEN '2008-08-15 06:00:00' AND '2008-08-15 23:59:59')), g.geom)

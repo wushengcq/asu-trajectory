@@ -8,6 +8,7 @@
     <display-name>ASU CICI Trajectory</display-name>
     <welcome-file-list>
         <welcome-file>index.jsp</welcome-file>
+        <welcome-file>index.html</welcome-file>
     </welcome-file-list>
 
     <servlet>
@@ -30,6 +31,7 @@
             <param-value>SELECT target p, longitude as x, latitude as y, date_time as d, trans_type as t FROM geolife WHERE  ORDER BY id ASC</param-value>
         </init-param>
     </servlet>
+
     <servlet-mapping>
         <servlet-name>GeoLife</servlet-name>
         <url-pattern>/geolife/*</url-pattern>
