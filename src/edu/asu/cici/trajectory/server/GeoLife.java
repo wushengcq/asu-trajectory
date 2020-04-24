@@ -101,27 +101,30 @@ public class GeoLife extends HttpServlet {
             e.printStackTrace();
             throw new ServletException(e);
         }
-
-        //this.query(request, response, sql, ReturnDataType.TRAJECTORY, (format != null && format.equals("json")));
     }
 
     private void contact(HttpServletRequest request, HttpServletResponse response) throws ServletException {
         String userId = request.getParameter("objectId");
         String start = request.getParameter("start");
         String end = request.getParameter("end");
+        String radius = request.getParameter("radius");
         String format = request.getParameter("format");
 
         if (userId == null || start == null || end == null) {
             throw new ServletException("Illegal Argument Exception");
         }
 
+        if (radius == null || radius.trim().isEmpty()) {
+            radius = "0.0001";
+        }
+
         String sql = String.format("SELECT target, longitude, latitude, date_time, trans_type FROM geolife g " +
                 "WHERE target != '%s' " +
                 "AND (g.date_time BETWEEN '%s' AND '%s')" +
                 "AND ST_Contains(" +
-                "(SELECT ST_Buffer(ST_MakeLine(geom ORDER BY date_time ASC), 0.0001) FROM geolife " +
+                "(SELECT ST_Buffer(ST_MakeLine(geom ORDER BY date_time ASC), %s) FROM geolife " +
                     "WHERE target = '%s' " +
-                    "AND (date_time BETWEEN '%s' AND '%s')), g.geom)", userId, start, end, userId, start, end);
+                    "AND (date_time BETWEEN '%s' AND '%s')), g.geom)", userId, start, end, radius, userId, start, end);
 
         System.out.println(sql);
         this.query(request, response, sql, ReturnDataType.CONTACT, (format != null && format.equals("json")));
