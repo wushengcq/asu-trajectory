@@ -37,4 +37,13 @@
         <url-pattern>/geolife/*</url-pattern>
     </servlet-mapping>
 
+    <filter>
+        <filter-name>cors</filter-name>
+        <filter-class>edu.asu.cici.trajectory.server.CORSFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>cors</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
 </web-app>
