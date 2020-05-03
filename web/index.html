@@ -1,324 +1,225 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>Digital Contact Tracing</title>
-<link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" rel="stylesheet"å>
-
-<script src="https://d3js.org/d3.v5.min.js"></script>
-<script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
-<!-- optional if mapbox base map is needed -->
-<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js'></script>
-<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' />
-
-<style>
-    * { box-sizing: border-box; }
-    body { margin:0; padding-top: 100px;}
-    #header {
-        position: fixed;
-        top: 0;
-        width: 100%;
-        height: 100px;
-        padding: 15px;
-        background: linear-gradient(15deg, #222, #fff);
-        font: 56px Audiowide;
-        color: #c58000;
-    }
-    #cici { position: fixed; top: -10px; right: 15px }
-    #map { width:100%; height:100% }
-    #timeline { 
-      position: absolute; 
-      left: 10px; bottom: 10px; 
-      width: 1060px; height: 100px; 
-      border: 1px solid #999; 
-      border-radius: 10px;
-      background: rgba(0, 0, 0, .5);
-    }
-    #timeline .container,
-    #timeline .meter {
-      position: absolute;
-      left: 90px; top: 10px;
-      width: 960px; height: 85px;
-    }
-    #timeline .meter {
-      width: 0px; height: 70px;
-      background: rgba(224, 224, 224, .3);
-      pointer-events: none;
-    }
-    #timeline .container:hover { cursor: pointer; }
-    #timeline .container rect {
-      fill: #999;
-      opacity: .5;
-    }
-    #timeline .container text {
-      stroke: #ccc;
-      opacity: .7;
-      font: 12px sans-serif;
-    }
-    #timeline .fas {
-      position: absolute;
-      color: #aaa;
-      font-size: 36px;
-      top: 30px; left: 30px;
-    }
-    .mainbox { position: absolute; top: 0; right: 10px; height: 100%; padding: 120px 0 25px 0; }
-    .logbox {
-      position: relative;
-      width: 400px;
-      height: 100%;
-      padding: 60px 12px 12px 12px;
-      background: #444;
-    }
-    .logbox .title { position: absolute; top: 10px; left: 10px; font: 28px Audiowide; color: #ccc; }
-    #log {
-      width: 100%; height: 100%;
-      overflow-y: scroll;
-    }
-    #log .event {
-      position: relative;
-      color: #aaa;
-      font: 12px sans-serif;
-      width: 100%; height: 30px;
-      padding-left: 25%;
-      cursor: pointer;
-    }
-    #log .event:nth-child(odd) { background: rgba(224, 224, 224, .1) }
-    #log .event:nth-child(even) { background: rgba(224, 224, 224, .2) }
-    #log .event[sel] { background: rgba(0, 0, 0, .3); }
-    #log .event .left { position:absolute; left: 0; width: 25%; padding: 7px 10px; pointer-events: none; }
-    #log .event .right{ width: 100%; padding: 7px 0; pointer-events: none; }
-    .mapboxgl-ctrl-bottom-left { display: none; }
-</style>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <title>Digital Contact</title>
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./lib/gmap/gmap.css" />
+    <style>
+        html, body {height:100%;}
+    </style>
+    <script src="./lib/gmap/gmap.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.0/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script>
 </head>
-<body>
-    <div id="header">Digital Contact Tracker</div>
-    <img id="cici" src="asu_cici_logo.png" height=120 />
-    <div id="map"></div>
-    <div id="timeline">
-      <i class="fas fa-play"></i>
-      <i class="fas fa-pause" style="display: none;"></i>
-      <svg class="container"></svg>
-      <div class="meter"></div>
+<body onload="loadMap()">
+
+<div class="row" style="height:100%">
+    <div class="col-3" style="padding:1.5em">
+        <div class="row">
+            <div class="col-4">
+                Target ID
+                <select id="target" class="form-control">
+                <option value="153">153</option>
+                <option value="128">128</option>
+                <option value="41">41</option>
+                <option value="17">17</option>
+                <option value="163">163</option>
+                <option value="68">68</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="167">167</option>
+                <option value="30">30</option>
+                <option value="85">85</option>
+                <option value="144">144</option>
+                <option value="3">3</option>
+                <option value="22">22</option>
+                <option value="4">4</option>
+                <option value="65">65</option>
+                <option value="126">126</option>
+                <option value="84">84</option>
+                </select>
+            </div>
+            <div class="col-4">
+            Start Time <input type="text" class="form-control" value="2008-8-15" id="start"/>
+            </div>
+            <div class="col-4">
+            End Time   <input type="text" class="form-control" value="2008-8-15" id="end"/>
+            </div>
+        </div>
+        <br>
+        <button type="button" class="btn btn-primary" id="btnTrajectory" onclick="loadTrajectory()">Trajectory</button>
+        <button type="button" class="btn btn-warning" id="btnPrevDay"> << Prev Day </button>
+        <button type="button" class="btn btn-info"    id="btnNextDay" onclick="nextDay()"> Next Day >> </button>
+        <!--
+        <button type="button" class="btn btn-success" id="btnBuffer">Buffer</button>
+        <button type="button" class="btn btn-danger"  id="btnContact">Contact</button> <br><br>
+        -->
+        <div id="traces" style="padding:1.5em;width:98%">
+        </div>
     </div>
-    <div class='mainbox'><div class='logbox'>
-      <div class='title'>Risky Contacts</div>
-      <div id="log"></div>
-    </div></div>
-</body>
+    <div class="col-9" >
+        <div id="mapdiv" style="width:100%;height:100%"></div>
+    </div>
+</div>
 
 <script>
+    var _server = "http://localhost:8080/digitalcontact/geolife";
+    var _map = null;
+    var _layers = new Array();
 
-function formatInt(n, l) {
-    var ret = ''
-    for (var i = 0; i < l; i++) ret += '0';
-    ret += n;
-    return ret.slice(ret.length - l);
-}
+    function loadMap() {
+        _map = GMap.map('mapdiv', {
+            center: [39.92889, 116.38833],
+            zoom: 11,
+            maxBounds: [[-90, -180],[90, 180]],
+            crs: GMap.CRS.EPSG3857
+        });
 
-function __play () {
-    d3.select('.fa-pause').style('display', 'block');
-    d3.select('.fa-play').style('display', 'none');
-    __raf = requestAnimationFrame(__anim)
-}
-function __pause() {
-    d3.select('.fa-play').style('display', 'block');
-    d3.select('.fa-pause').style('display', 'none');
-    cancelAnimationFrame(__raf);
-}
+        var layer = GMap.tileLayer('http://{s}.google.cn/vt/lyrs=s&x={x}&y={y}&z={z}',{
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3']
+        });
 
-var __raf;
-d3.select('.fa-play').on('click', () => { __play() });
-d3.select('.fa-pause').on('click', () => { __pause() });
-d3.select('#timeline .container').on('click', function() {
-    var x = d3.mouse(this)[0];
-    __t = x * 90;
-    __render(__t);
-});
+        layer.addTo(_map);
+    }
 
-d3.json('data/time.json').then(data => {
-    var tv = data.map(d => d.v);
-    var mv = tv.reduce((a,b) => Math.max(a,b));
+    function disposeMap() {
+        if (_map == null) return;
+        _map.off();
+        _map.remove();
+        _map = null;
+    }
 
-    var g = d3.select('#timeline .container').selectAll('g')
-        .data(data).enter().append('g')
-        .attr('transform', (d,i) => 'translate(' + ((i + 24) % 96 * 10 + 1) + ',0)' );
-    g.append('rect')
-        .attr('y', d => 65 -  d.v * 60 / mv)
-        .attr('width', 8)
-        .attr('height', d => d.v * 60 / mv );
-    g.append('text')
-        .text((d,i) => i % 8 == 0 ? (i+24)%96/4 + ':00' : '' )
-        .attr('y', 80)
-});
+    function refreshMap() {
+        _map.invalidateSize();
+    }
 
-var contactdata;
-d3.json('data/contact.json').then(data => {
-    contactdata = data;
-    data.sort((a,b) => a.t > b.t ? 1 : -1);
-    var g = d3.select('#log').selectAll('div')
-        .data(data).enter().append('div')
-        .attr('class', 'event')
-        .attr('time', d => ~~(d.t))
-        .on('click', function() {
-            var t = ~~d3.select(this).attr('time')
-            __t = t - 1;
-            __pause();
-            __render(__t);
-        })
-    g.append('div').attr('class', 'left')
-        .html(d => formatInt(~~(d.t/3600), 2) + ':' + formatInt(~~(d.t%3600/60), 2) + ':' + formatInt(~~(d.t%60), 2));
-    g.append('div').attr('class', 'right')
-        .html(d => 'Contact to Person' + formatInt(d.id, 3) + ' @ ' + d.p[0] + ',' + d.p[1]);
-});
+    function isLoaded() {
+        var label = $('#start').val() + ' ~ ' + $('#end').val();
+        if (_layers[label]) {
+            alert("already load trajectory : " + label)
+            true;
+        } else {
+            return false;
+        }
 
-const data = d3.csv("data/points.csv");
-const tripData = d3.json("data/track.json");
+    }
 
-const COLOR_RANGE = [
-  [1, 152, 189],
-  [73, 227, 206],
-  [216, 254, 181],
-  [254, 237, 177],
-  [254, 173, 84],
-  [209, 55, 78]
-];
+    function loadTrajectory() {
+        if (isLoaded()) {
+            return;
+        }
 
-const ambientLight = new deck.AmbientLight({
-  color: [255, 255, 255],
-  intensity: 1.0
-});
+        var target = $('#target').val();
+        var start  = $('#start').val();
+        var end    = $('#end').val();
+        var url = encodeURI(_server + '/trajectory?objectId=' + target + '&start=' + start + ' 06:00:00&end=' + end + ' 23:59:59&format=json');
+        console.log(url);
 
-const pointLight1 = new deck.PointLight({
-  color: [255, 255, 255],
-  intensity: 0.8,
-  position: [116.33, 40.03, 8000]
-});
+        GMap.ajax({
+            url: url,
+            timeout: 7000,
+            type: 'json',
+            onDone: drawTrajectory,
+            onFail: function(err_msg) {
+                console.error(err_msg);
+            }
+        }).doGet();
+    }
 
-const pointLight2 = new deck.PointLight({
-  color: [255, 255, 255],
-  intensity: 0.8,
-  position: [116.2, 39.90, 800]
-});
+    function drawTrajectory(featureCollection) {
+        if (featureCollection.features.length == 0) {
+            alert("no trajectory data");
+            return;
+        }
 
-const lightingEffect = new deck.LightingEffect({ambientLight, pointLight1, pointLight2});
+        var options = {
+            weight: 3,
+            color: randomColor(),
+            opacity: 0.9
+        };
 
-const material = {
-  ambient: 0.64,
-  diffuse: 0.6,
-  shininess: 32,
-  specularColor: [51, 51, 51]
-};
-
-const tripTheme = {
-  trailColor0: [253, 128, 93],
-  trailColor1: [23, 184, 190],
-}
-
-const map = new deck.DeckGL({
-  container: 'map',
-  mapboxApiAccessToken: 'pk.eyJ1Ijoic2E5dXMiLCJhIjoiY2s5YWxsOHY0MDI1eTNtbXh5bGZlb3VzZyJ9.K1ORjD7xw_ne5MbvbaS1uQ',
-  mapStyle: 'mapbox://styles/mapbox/dark-v9',
-  initialViewState: {
-    longitude: 116.332,
-    latitude: 39.99,
-    zoom: 14,
-    pitch: 50
-  },
-  effects: [lightingEffect],
-  controller: true
-});
-
-const hexagonLayer = new deck.HexagonLayer({
-    id: 'heatmap',
-    colorRange: COLOR_RANGE,
-    data,
-    elevationRange: [0, 100],
-    elevationScale: 200,
-    extruded: true,
-    getPosition: d => [Number(d.lng), Number(d.lat)],
-    opacity: .01,
-    radius: 20,
-    coverage: 1,
-    upperPercentile: 99.5,
-    material: material,
-    // transitions: {
-    //     elevationScale: 5000
-    // }
-});
-
-const tripLayer = new deck.TripsLayer({
-    id: 'trips',
-    data: tripData,
-    getPath: d => d.path,
-    getTimestamps: d => d.timestamp,
-    getColor: d => (d.marked === 0 ? tripTheme.trailColor0 : tripTheme.trailColor1),
-    opacity: 0.8,
-    widthMinPixels: 2,
-    rounded: true,
-    trailLength: 200,
-    currentTime: 1228893329,
-
-    shadowEnabled: false
-});
-
-map.setProps({layers:[hexagonLayer]});
-
-function __render(time) {
-    for (var i in contactdata) 
-        contactdata[i]['ct'] = time;
-    
-    d3.selectAll('#log .event').attr('sel', null);
-    var logs = document.querySelectorAll('#log .event');
-    for (var i = 0; i < logs.length; i++) {
-        var log = logs[i];
-        if (~~log.getAttribute('time') > time) {
-            log.scrollIntoViewIfNeeded(1);
-            d3.select(log).attr('sel', '');
-            break;
+        var layer = GMap.geoJSON(featureCollection, options);
+        layer.addTo(_map);
+        if (layer.getBounds().isValid()) {
+            _map.fitBounds(layer.getBounds());
+            addTrace(layer);
+        } else {
+            alert("error trajectory data");
         }
     }
-    map.setProps({
-        layers: [new deck.TripsLayer({
-            id: 'trips',
-            data: tripData,
-            getPath: d => d.path,
-            getTimestamps: d => d.timestamp,
-            getColor: d => (d.marked === 0 ? tripTheme.trailColor0 : tripTheme.trailColor1),
-            opacity: 0.8,
-            widthMinPixels: 4,
-            rounded: true,
-            trailLength: 800,
-            currentTime: (time - 28800) % 86400,
 
-            shadowEnabled: false,
-        }), new deck.ScatterplotLayer({
-            id: 'contacts',
-            data: contactdata.slice(),
-            opacity: 0.8,
-            stroked: false,
-            filled: true,
-            radiusScale: 1,
-            radiusMinPixels: 0,
-            radiusMaxPixels: 1000,
-            getPosition: d => d.p,
-            getRadius: d => Math.pow(Math.max(0, (600 - Math.abs(d.t - d.ct))), 2) / 3600,
-            getFillColor: d => [255, 100, 100, Math.pow(Math.max(0, (600 - Math.abs(d.t - d.ct))), 2) / 1200], 
-        }), hexagonLayer]
-    });
+    function nextDay() {
+        var ymd = $('#end').val().split('-');
+        var date = new Date();
 
-    d3.select('#timeline .meter').style("width", (time * 96/ 8640) + 'px');
-}
+        date.setUTCFullYear(parseInt(ymd[0]));
+        date.setUTCMonth(parseInt(ymd[1])-1);
+        date.setUTCDate(parseInt(ymd[2]));
+        date.setDate(date.getDate() + 1);
 
-var ani_step = 10;
-window.__t = 0;
-function __anim() {
-    __t += ani_step;
-    var time = __t % 86400;
+        $('#start').val(date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate());
+        $('#end').val(date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate());
 
-    __render(time);
+        loadTrajectory();
+    }
 
-    __raf = requestAnimationFrame(__anim);
-};
+    function addTrace(layer) {
+        if (isLoaded()) {
+            return;
+        }
 
-</script>
+        var target = $('#target').val();
+        var start  = $('#start').val();
+        var end    = $('#end').val();
+        var url    = encodeURI(_server + '/trajectory?objectId=' + target + '&start=' + start + ' 06:00:00&end=' + end + ' 23:59:59&format=json');
 
+
+        var label = start + ' ~ ' + end;
+        var index = $('#traces').find('div.row').length;
+        _layers[label] = layer;
+
+        var row = $(`
+            <div class="row">
+                <div class="col-1">
+                    <input type="checkbox" checked="true" style="cursor:pointer"/>
+                </div>
+                <div class="col-9" layerKey="${label}" ><a href='${url}' target='_blank'>${label}</a></div>
+                <div class="col-1 delete" style="cursor:pointer;font-weight:bold"> X </div>
+            </div>
+        `);
+
+        row.find('input').change(function(e){
+            var t = e.target;
+            var label = $(t).parent().next().attr('layerKey');
+            var layer = _layers[label];
+            if (t.checked) {
+                _map.addLayer(layer);
+            } else {
+                _map.removeLayer(layer);
+            }
+        });
+
+        row.find('div.delete').click(function(e){
+            var t = e.target;
+            var label = $(t).prev().attr('layerKey');
+            var layer = _layers[label];
+            if (layer != null) {
+                _map.removeLayer(layer);
+                delete _layers[label];
+            }
+            $(t).parent().remove();
+        });
+
+        $("#traces").prepend(row);
+    }
+
+    function randomColor() {
+        //return '#'+Math.random().toString(16).slice(-6);
+        return 'hsla(' + (Math.random() * 360) + ', 100%, 50%, 1)';
+    }
+
+    </script>
+</body>
 </html>

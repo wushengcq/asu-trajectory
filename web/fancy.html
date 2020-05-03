@@ -1,0 +1,324 @@
+<html>
+<head>
+<title>Digital Contact Tracing</title>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" rel="stylesheet"å>
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+<!-- optional if mapbox base map is needed -->
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' />
+
+<style>
+    * { box-sizing: border-box; }
+    body { margin:0; padding-top: 100px;}
+    #header {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        height: 100px;
+        padding: 15px;
+        background: linear-gradient(15deg, #222, #fff);
+        font: 56px Audiowide;
+        color: #c58000;
+    }
+    #cici { position: fixed; top: -10px; right: 15px }
+    #map { width:100%; height:100% }
+    #timeline { 
+      position: absolute; 
+      left: 10px; bottom: 10px; 
+      width: 1060px; height: 100px; 
+      border: 1px solid #999; 
+      border-radius: 10px;
+      background: rgba(0, 0, 0, .5);
+    }
+    #timeline .container,
+    #timeline .meter {
+      position: absolute;
+      left: 90px; top: 10px;
+      width: 960px; height: 85px;
+    }
+    #timeline .meter {
+      width: 0px; height: 70px;
+      background: rgba(224, 224, 224, .3);
+      pointer-events: none;
+    }
+    #timeline .container:hover { cursor: pointer; }
+    #timeline .container rect {
+      fill: #999;
+      opacity: .5;
+    }
+    #timeline .container text {
+      stroke: #ccc;
+      opacity: .7;
+      font: 12px sans-serif;
+    }
+    #timeline .fas {
+      position: absolute;
+      color: #aaa;
+      font-size: 36px;
+      top: 30px; left: 30px;
+    }
+    .mainbox { position: absolute; top: 0; right: 10px; height: 100%; padding: 120px 0 25px 0; }
+    .logbox {
+      position: relative;
+      width: 400px;
+      height: 100%;
+      padding: 60px 12px 12px 12px;
+      background: #444;
+    }
+    .logbox .title { position: absolute; top: 10px; left: 10px; font: 28px Audiowide; color: #ccc; }
+    #log {
+      width: 100%; height: 100%;
+      overflow-y: scroll;
+    }
+    #log .event {
+      position: relative;
+      color: #aaa;
+      font: 12px sans-serif;
+      width: 100%; height: 30px;
+      padding-left: 25%;
+      cursor: pointer;
+    }
+    #log .event:nth-child(odd) { background: rgba(224, 224, 224, .1) }
+    #log .event:nth-child(even) { background: rgba(224, 224, 224, .2) }
+    #log .event[sel] { background: rgba(0, 0, 0, .3); }
+    #log .event .left { position:absolute; left: 0; width: 25%; padding: 7px 10px; pointer-events: none; }
+    #log .event .right{ width: 100%; padding: 7px 0; pointer-events: none; }
+    .mapboxgl-ctrl-bottom-left { display: none; }
+</style>
+</head>
+<body>
+    <div id="header">Digital Contact Tracker</div>
+    <img id="cici" src="asu_cici_logo.png" height=120 />
+    <div id="map"></div>
+    <div id="timeline">
+      <i class="fas fa-play"></i>
+      <i class="fas fa-pause" style="display: none;"></i>
+      <svg class="container"></svg>
+      <div class="meter"></div>
+    </div>
+    <div class='mainbox'><div class='logbox'>
+      <div class='title'>Risky Contacts</div>
+      <div id="log"></div>
+    </div></div>
+</body>
+
+<script>
+
+function formatInt(n, l) {
+    var ret = ''
+    for (var i = 0; i < l; i++) ret += '0';
+    ret += n;
+    return ret.slice(ret.length - l);
+}
+
+function __play () {
+    d3.select('.fa-pause').style('display', 'block');
+    d3.select('.fa-play').style('display', 'none');
+    __raf = requestAnimationFrame(__anim)
+}
+function __pause() {
+    d3.select('.fa-play').style('display', 'block');
+    d3.select('.fa-pause').style('display', 'none');
+    cancelAnimationFrame(__raf);
+}
+
+var __raf;
+d3.select('.fa-play').on('click', () => { __play() });
+d3.select('.fa-pause').on('click', () => { __pause() });
+d3.select('#timeline .container').on('click', function() {
+    var x = d3.mouse(this)[0];
+    __t = x * 90;
+    __render(__t);
+});
+
+d3.json('data/time.json').then(data => {
+    var tv = data.map(d => d.v);
+    var mv = tv.reduce((a,b) => Math.max(a,b));
+
+    var g = d3.select('#timeline .container').selectAll('g')
+        .data(data).enter().append('g')
+        .attr('transform', (d,i) => 'translate(' + ((i + 24) % 96 * 10 + 1) + ',0)' );
+    g.append('rect')
+        .attr('y', d => 65 -  d.v * 60 / mv)
+        .attr('width', 8)
+        .attr('height', d => d.v * 60 / mv );
+    g.append('text')
+        .text((d,i) => i % 8 == 0 ? (i+24)%96/4 + ':00' : '' )
+        .attr('y', 80)
+});
+
+var contactdata;
+d3.json('data/contact.json').then(data => {
+    contactdata = data;
+    data.sort((a,b) => a.t > b.t ? 1 : -1);
+    var g = d3.select('#log').selectAll('div')
+        .data(data).enter().append('div')
+        .attr('class', 'event')
+        .attr('time', d => ~~(d.t))
+        .on('click', function() {
+            var t = ~~d3.select(this).attr('time')
+            __t = t - 1;
+            __pause();
+            __render(__t);
+        })
+    g.append('div').attr('class', 'left')
+        .html(d => formatInt(~~(d.t/3600), 2) + ':' + formatInt(~~(d.t%3600/60), 2) + ':' + formatInt(~~(d.t%60), 2));
+    g.append('div').attr('class', 'right')
+        .html(d => 'Contact to Person' + formatInt(d.id, 3) + ' @ ' + d.p[0] + ',' + d.p[1]);
+});
+
+const data = d3.csv("data/points.csv");
+const tripData = d3.json("data/track.json");
+
+const COLOR_RANGE = [
+  [1, 152, 189],
+  [73, 227, 206],
+  [216, 254, 181],
+  [254, 237, 177],
+  [254, 173, 84],
+  [209, 55, 78]
+];
+
+const ambientLight = new deck.AmbientLight({
+  color: [255, 255, 255],
+  intensity: 1.0
+});
+
+const pointLight1 = new deck.PointLight({
+  color: [255, 255, 255],
+  intensity: 0.8,
+  position: [116.33, 40.03, 8000]
+});
+
+const pointLight2 = new deck.PointLight({
+  color: [255, 255, 255],
+  intensity: 0.8,
+  position: [116.2, 39.90, 800]
+});
+
+const lightingEffect = new deck.LightingEffect({ambientLight, pointLight1, pointLight2});
+
+const material = {
+  ambient: 0.64,
+  diffuse: 0.6,
+  shininess: 32,
+  specularColor: [51, 51, 51]
+};
+
+const tripTheme = {
+  trailColor0: [253, 128, 93],
+  trailColor1: [23, 184, 190],
+}
+
+const map = new deck.DeckGL({
+  container: 'map',
+  mapboxApiAccessToken: 'pk.eyJ1Ijoic2E5dXMiLCJhIjoiY2s5YWxsOHY0MDI1eTNtbXh5bGZlb3VzZyJ9.K1ORjD7xw_ne5MbvbaS1uQ',
+  mapStyle: 'mapbox://styles/mapbox/dark-v9',
+  initialViewState: {
+    longitude: 116.332,
+    latitude: 39.99,
+    zoom: 14,
+    pitch: 50
+  },
+  effects: [lightingEffect],
+  controller: true
+});
+
+const hexagonLayer = new deck.HexagonLayer({
+    id: 'heatmap',
+    colorRange: COLOR_RANGE,
+    data,
+    elevationRange: [0, 100],
+    elevationScale: 200,
+    extruded: true,
+    getPosition: d => [Number(d.lng), Number(d.lat)],
+    opacity: .01,
+    radius: 20,
+    coverage: 1,
+    upperPercentile: 99.5,
+    material: material,
+    // transitions: {
+    //     elevationScale: 5000
+    // }
+});
+
+const tripLayer = new deck.TripsLayer({
+    id: 'trips',
+    data: tripData,
+    getPath: d => d.path,
+    getTimestamps: d => d.timestamp,
+    getColor: d => (d.marked === 0 ? tripTheme.trailColor0 : tripTheme.trailColor1),
+    opacity: 0.8,
+    widthMinPixels: 2,
+    rounded: true,
+    trailLength: 200,
+    currentTime: 1228893329,
+
+    shadowEnabled: false
+});
+
+map.setProps({layers:[hexagonLayer]});
+
+function __render(time) {
+    for (var i in contactdata) 
+        contactdata[i]['ct'] = time;
+    
+    d3.selectAll('#log .event').attr('sel', null);
+    var logs = document.querySelectorAll('#log .event');
+    for (var i = 0; i < logs.length; i++) {
+        var log = logs[i];
+        if (~~log.getAttribute('time') > time) {
+            log.scrollIntoViewIfNeeded(1);
+            d3.select(log).attr('sel', '');
+            break;
+        }
+    }
+    map.setProps({
+        layers: [new deck.TripsLayer({
+            id: 'trips',
+            data: tripData,
+            getPath: d => d.path,
+            getTimestamps: d => d.timestamp,
+            getColor: d => (d.marked === 0 ? tripTheme.trailColor0 : tripTheme.trailColor1),
+            opacity: 0.8,
+            widthMinPixels: 4,
+            rounded: true,
+            trailLength: 800,
+            currentTime: (time - 28800) % 86400,
+
+            shadowEnabled: false,
+        }), new deck.ScatterplotLayer({
+            id: 'contacts',
+            data: contactdata.slice(),
+            opacity: 0.8,
+            stroked: false,
+            filled: true,
+            radiusScale: 1,
+            radiusMinPixels: 0,
+            radiusMaxPixels: 1000,
+            getPosition: d => d.p,
+            getRadius: d => Math.pow(Math.max(0, (600 - Math.abs(d.t - d.ct))), 2) / 3600,
+            getFillColor: d => [255, 100, 100, Math.pow(Math.max(0, (600 - Math.abs(d.t - d.ct))), 2) / 1200], 
+        }), hexagonLayer]
+    });
+
+    d3.select('#timeline .meter').style("width", (time * 96/ 8640) + 'px');
+}
+
+var ani_step = 10;
+window.__t = 0;
+function __anim() {
+    __t += ani_step;
+    var time = __t % 86400;
+
+    __render(time);
+
+    __raf = requestAnimationFrame(__anim);
+};
+
+</script>
+
+</html>
